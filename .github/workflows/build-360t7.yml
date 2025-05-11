@@ -1,7 +1,7 @@
 name: Build 360T7 OpenWrt
 
 on:
-  repository_dispatch:
+#  repository_dispatch:
   workflow_dispatch:
 
 env:
