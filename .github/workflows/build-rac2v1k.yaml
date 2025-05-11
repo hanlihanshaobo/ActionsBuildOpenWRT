@@ -1,7 +1,7 @@
 name: Build rac2v1k OpenWrt
 
 on:
-  repository_dispatch:
+#  repository_dispatch:
   workflow_dispatch:
 
 env:
