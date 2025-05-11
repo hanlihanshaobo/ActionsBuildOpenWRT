@@ -16,6 +16,7 @@ env:
   UPLOAD_COWTRANSFER: false
   UPLOAD_WETRANSFER: false
   UPLOAD_RELEASE: false
+  UPLOAD_WEBDAV: true
   TZ: Asia/Shanghai
 
 jobs:
@@ -216,3 +217,11 @@ jobs:
         delete_tags: true
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        
+    - name: Upload firmware to WebDAV
+      id: webdav_upload
+      if: steps.organize.outputs.status == 'success' && !cancelled() && env.UPLOAD_WEBDAV == 'true'
+      run: |
+        echo "Uploading to WebDAV..."
+        curl -T ${{ env.FIRMWARE }}/* -u ${{ secrets.WEBDAV_USERNAME }}:${{ secrets.WEBDAV_PASSWORD }} ${{ secrets.WEBDAV_URL }}
+        echo "WebDAV upload completed"       
