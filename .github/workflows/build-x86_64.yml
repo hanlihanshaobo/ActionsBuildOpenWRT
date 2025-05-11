@@ -1,7 +1,7 @@
 name: Build X86_64 OpenWrt
 
 on:
-  repository_dispatch:
+#  repository_dispatch:
   workflow_dispatch:
 
 env:
