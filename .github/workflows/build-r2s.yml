@@ -182,7 +182,21 @@ jobs:
         ./transfer wet -s -p 16 --no-progress ${FIRMWARE} 2>&1 | tee wetransfer.log
         echo "::warning file=wetransfer.com::$(cat wetransfer.log | grep https)"
         echo "url=$(cat wetransfer.log | grep https | cut -f3 -d" ")" >> $GITHUB_OUTPUT
-
+        
+    - name: Upload firmware to WebDAV
+      id: webdav_upload
+      if: steps.organize.outputs.status == 'success' && !cancelled() && env.UPLOAD_WEBDAV == 'true'
+      run: |
+        echo "Uploading to WebDAV..."
+        for file in ${{ env.FIRMWARE }}/*; do
+          echo "Uploading $file ..."
+          curl -T "$file" -u "${{ secrets.WEBDAV_USERNAME }}:${{ secrets.WEBDAV_PASSWORD }}" "${{ secrets.WEBDAV_URL }}$(basename $file)" || {
+            echo "::error::Failed to upload $file to WebDAV"
+            exit 1
+          }
+        done
+        echo "WebDAV upload completed"
+        
     - name: Generate release tag
       id: tag
       if: env.UPLOAD_RELEASE == 'true' && !cancelled()
@@ -217,11 +231,3 @@ jobs:
         delete_tags: true
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        
-    - name: Upload firmware to WebDAV
-      id: webdav_upload
-      if: steps.organize.outputs.status == 'success' && !cancelled() && env.UPLOAD_WEBDAV == 'true'
-      run: |
-        echo "Uploading to WebDAV..."
-        curl -T ${{ env.FIRMWARE }}/* -u ${{ secrets.WEBDAV_USERNAME }}:${{ secrets.WEBDAV_PASSWORD }} ${{ secrets.WEBDAV_URL }}
-        echo "WebDAV upload completed"       
