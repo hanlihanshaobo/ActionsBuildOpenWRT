@@ -187,15 +187,25 @@ jobs:
       id: webdav_upload
       if: steps.organize.outputs.status == 'success' && !cancelled() && env.UPLOAD_WEBDAV == 'true'
       run: |
-        echo "Uploading to WebDAV..."
+        # Generate a unique folder name based on the current timestamp or other logic
+        TIMESTAMP=$(date +"%Y%m%d%H%M%S")
+        NEW_FOLDER="${{ secrets.WEBDAV_URL }}$TIMESTAMP/"
+
+        # Create the new folder (you might need to check if the server allows creating folders via WebDAV)
+        echo "Creating folder: $NEW_FOLDER"
+        curl -u "${{ secrets.WEBDAV_USERNAME }}:${{ secrets.WEBDAV_PASSWORD }}" -X MKCOL "$NEW_FOLDER"
+
+        # Upload each file to the newly created folder
+        echo "Uploading files to $NEW_FOLDER"
         for file in ${{ env.FIRMWARE }}/*; do
-          echo "Uploading $file ..."
-          curl -T "$file" -u "${{ secrets.WEBDAV_USERNAME }}:${{ secrets.WEBDAV_PASSWORD }}" "${{ secrets.WEBDAV_URL }}$(basename $file)" || {
+          echo "Uploading $file to $NEW_FOLDER"
+          curl -T "$file" -u "${{ secrets.WEBDAV_USERNAME }}:${{ secrets.WEBDAV_PASSWORD }}" "${NEW_FOLDER}$(basename $file)" || {
             echo "::error::Failed to upload $file to WebDAV"
             exit 1
           }
         done
-        echo "WebDAV upload completed"
+
+        echo "WebDAV upload completed to $NEW_FOLDER"
         
     - name: Generate release tag
       id: tag
