@@ -14,7 +14,7 @@
 [点击进入 WebDAV 下载目录](${CLEAN_URL})
 
 ##### **Releases 目录**
-[点击进入 Releases 下载目录](https://github.com/${{ github.repository }}/releases/download/${{ steps.tag.outputs.release_tag }}/${{ env.DEVICE_NAME }}_${{ env.FILE_DATE }}.bin)
+[点击进入 Releases 下载目录](https://git.xuantan.icu/https://github.com/${{ github.repository }}/releases/download/${{ steps.tag.outputs.release_tag }}/${{ env.DEVICE_NAME }}_${{ env.FILE_DATE }}.bin)
 
 #### ✅ **上传完成**
 固件已成功上传至 WebDAV 和 Releases，您可以直接点击链接下载使用。
