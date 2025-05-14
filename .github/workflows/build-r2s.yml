@@ -213,14 +213,17 @@ jobs:
     - name: Generate DingTalk message
       id: generate_message
       run: |
+        # 获取北京时间
+        TIME_NOW=$(TZ=Asia/Shanghai date "+%Y-%m-%d %H:%M:%S")
+    
         # 读取模板并替换变量
         MESSAGE=$(cat templates/dingding_message.md)
         MESSAGE=$(echo "$MESSAGE" | sed "s/\${DEVICE_NAME}/$(echo $DEVICE_NAME)/g")
-        MESSAGE=$(echo "$MESSAGE" | sed "s/\${TIME_NOW}/$(date "+%Y-%m-%d %H:%M:%S")/g")
+        MESSAGE=$(echo "$MESSAGE" | sed "s/\${TIME_NOW}/$TIME_NOW/g")
         MESSAGE=$(echo "$MESSAGE" | sed "s/\${CLEAN_URL}/$(echo $CLEAN_URL)/g")
     
         echo "message=$MESSAGE" >> $GITHUB_ENV
-    
+        
     - name: Send DingTalk notification
       if: steps.generate_message.outputs.status == 'success'
       run: |
