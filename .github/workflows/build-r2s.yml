@@ -221,7 +221,8 @@ jobs:
         MESSAGE=$(echo "$MESSAGE" | sed "s/\${DEVICE_NAME}/$(echo $DEVICE_NAME)/g")
         MESSAGE=$(echo "$MESSAGE" | sed "s/\${TIME_NOW}/$TIME_NOW/g")
         MESSAGE=$(echo "$MESSAGE" | sed "s/\${CLEAN_URL}/$(echo $CLEAN_URL)/g")
-    
+        MESSAGE=$(echo "$MESSAGE" | sed "s/\${RELEASES_URL}/https:\/\/github.com\/${{ github.repository }}\/releases\/download\/${{ steps.tag.outputs.release_tag }}\/${{ env.DEVICE_NAME }}_${{ env.FILE_DATE }}.bin/g")
+        
         echo "message=$MESSAGE" >> $GITHUB_ENV
         
     - name: Send DingTalk notification
