@@ -211,14 +211,14 @@ jobs:
         FIRMWARE: ${{ env.FIRMWARE }}
 
     - name: Notify DingTalk Bot
-      if: steps.webdav_upload.outputs.status == 'success' && !cancelled() && env.UPLOAD_WEBDAV == 'true'
+      if: steps.webdav_upload.outcome == 'success' && !cancelled() && env.UPLOAD_WEBDAV == 'true'
       env:
         DINGTALK_WEBHOOK_BASE: ${{ secrets.DINGTALK_WEBHOOK_BASE }}
         DINGTALK_SECRET: ${{ secrets.DINGTALK_SECRET }}
+        WEBDAV_URL: ${{ secrets.WEBDAV_URL }}
+        DEVICE_NAME: ${{ env.DEVICE_NAME }}
       run: |
-        # 创建签名工具
-        install -m 755 /dev/null dingtalk_sign.py
-        cat > dingtalk_sign.py <<'EOF'
+        cat << 'EOF' > dingtalk_sign.py
 import sys, time, hmac, hashlib, base64, urllib.parse
 timestamp = str(round(time.time() * 1000))
 secret = sys.argv[1]
@@ -228,15 +228,11 @@ sign = urllib.parse.quote_plus(base64.b64encode(hmac_code))
 print(f"{timestamp} {sign}")
 EOF
 
-        # 签名计算
         read TIMESTAMP SIGN <<< $(python3 dingtalk_sign.py "$DINGTALK_SECRET")
 
-        # 推送信息准备
         TIME_NOW=$(TZ=Asia/Shanghai date "+%Y-%m-%d %H:%M:%S")
-        DEVICE_NAME="${{ env.DEVICE_NAME:-nanopi-r2s }}"
         BUILD_TAG=$(date +"%Y%m%d%H%M%S")
-        UPLOAD_URL="${{ secrets.WEBDAV_URL }}${DEVICE_NAME}_${BUILD_TAG}/"
-        DOWNLOAD_URL="${UPLOAD_URL/\/dav/}"
+        DOWNLOAD_URL="${WEBDAV_URL/\/dav/}${DEVICE_NAME}_${BUILD_TAG}/"
 
         MESSAGE=$(cat <<EOF
 ### 🚀 固件构建完成
@@ -252,6 +248,7 @@ EOF
         curl -s -X POST "${DINGTALK_WEBHOOK_BASE}&timestamp=${TIMESTAMP}&sign=${SIGN}" \
           -H "Content-Type: application/json" \
           -d "{\"msgtype\": \"markdown\", \"markdown\": {\"title\": \"固件构建完成\", \"text\": \"$MESSAGE\"}}"
+
         
     - name: Generate release tag
       id: tag
