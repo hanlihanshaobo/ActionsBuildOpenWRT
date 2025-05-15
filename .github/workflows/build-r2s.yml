@@ -213,22 +213,27 @@ jobs:
     - name: Generate DingTalk message
       id: generate_message
       run: |
-        # 获取北京时间
         TIME_NOW=$(TZ=Asia/Shanghai date "+%Y-%m-%d %H:%M:%S")
-    
-        # 读取模板并替换变量（使用@分隔符，避免URL中斜杠冲突）
         MESSAGE=$(cat templates/dingding_message.md)
-        MESSAGE=$(echo "$MESSAGE" | sed "s@\${DEVICE_NAME}@${DEVICE_NAME}@g")
-        MESSAGE=$(echo "$MESSAGE" | sed "s@\${TIME_NOW}@${TIME_NOW}@g")
-        MESSAGE=$(echo "$MESSAGE" | sed "s@\${CLEAN_URL}@${CLEAN_URL}@g")
+        MESSAGE="${MESSAGE//\$\{DEVICE_NAME\}/${DEVICE_NAME:-Unknown}}"
+        MESSAGE="${MESSAGE//\$\{TIME_NOW\}/${TIME_NOW}}"
+        MESSAGE="${MESSAGE//\$\{CLEAN_URL\}/${CLEAN_URL:-https:\/\/example.com}}"
     
-        RELEASES_URL="https://github.com/${{ github.repository }}/releases/download/${{ steps.tag.outputs.release_tag }}/${DEVICE_NAME}_${FILE_DATE}.bin"
-        MESSAGE=$(echo "$MESSAGE" | sed "s@\${RELEASES_URL}@${RELEASES_URL}@g")
-    
-        echo "message<<EOF" >> $GITHUB_ENV
+        echo "MESSAGE<<EOF" >> $GITHUB_ENV
         echo "$MESSAGE" >> $GITHUB_ENV
         echo "EOF" >> $GITHUB_ENV
-  
+    
+    - name: Send DingTalk notification
+      run: |
+        curl -s -X POST "${DINGTALK_WEBHOOK_BASE}&timestamp=${DING_TIMESTAMP}&sign=${DING_SIGN}" \
+          -H "Content-Type: application/json" \
+          -d "$(jq -n --arg title "固件构建完成" --arg text "${{ env.MESSAGE }}" '{msgtype:"markdown", markdown:{title:$title, text:$text}}')"
+      env:
+        DINGTALK_WEBHOOK_BASE: ${{ secrets.DINGTALK_WEBHOOK_BASE }}
+        DINGTALK_SECRET: ${{ secrets.DINGTALK_SECRET }}
+        DING_TIMESTAMP: ${{ steps.dingtalk_sign.outputs.timestamp }}
+        DING_SIGN: ${{ steps.dingtalk_sign.outputs.sign }}
+
     - name: Generate release tag
       id: tag
       if: env.UPLOAD_RELEASE == 'true' && !cancelled()
