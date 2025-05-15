@@ -236,13 +236,12 @@ jobs:
       run: |
         curl -s -X POST "${DINGTALK_WEBHOOK_BASE}&timestamp=${DING_TIMESTAMP}&sign=${DING_SIGN}" \
           -H "Content-Type: application/json" \
-          -d "$(jq -n --arg title "固件构建完成" --arg text "${{ env.MESSAGE }}" '{msgtype:"markdown", markdown:{title:$title, text:$text}}')"
+          -d "$(jq -n --arg title "固件构建完成" --arg text "$MESSAGE" '{msgtype:"markdown", markdown:{title:$title, text:$text}}')"
       env:
         DINGTALK_WEBHOOK_BASE: ${{ secrets.DINGTALK_WEBHOOK_BASE }}
         DING_TIMESTAMP: ${{ steps.dingtalk_sign.outputs.timestamp }}
         DING_SIGN: ${{ steps.dingtalk_sign.outputs.sign }}
-        MESSAGE: ${{ steps.dingding_template.outputs.content }}
-
+        MESSAGE: ${{ env.MESSAGE }}
 
     - name: Generate release tag
       id: tag
