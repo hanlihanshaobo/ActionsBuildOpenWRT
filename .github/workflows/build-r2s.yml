@@ -223,6 +223,15 @@ jobs:
         echo "$MESSAGE" >> $GITHUB_ENV
         echo "EOF" >> $GITHUB_ENV
     
+    - name: Generate DingTalk signature
+      id: dingtalk_sign
+      run: |
+        timestamp=$(($(date +%s%N)/1000000))
+        string_to_sign="${timestamp}\n${{ secrets.DINGTALK_SECRET }}"
+        sign=$(echo -n "$string_to_sign" | openssl dgst -sha256 -hmac "${{ secrets.DINGTALK_SECRET }}" -binary | base64 | jq -s -R -r @uri)
+        echo "timestamp=$timestamp" >> $GITHUB_OUTPUT
+        echo "sign=$sign" >> $GITHUB_OUTPUT
+    
     - name: Send DingTalk notification
       run: |
         curl -s -X POST "${DINGTALK_WEBHOOK_BASE}&timestamp=${DING_TIMESTAMP}&sign=${DING_SIGN}" \
@@ -230,9 +239,10 @@ jobs:
           -d "$(jq -n --arg title "固件构建完成" --arg text "${{ env.MESSAGE }}" '{msgtype:"markdown", markdown:{title:$title, text:$text}}')"
       env:
         DINGTALK_WEBHOOK_BASE: ${{ secrets.DINGTALK_WEBHOOK_BASE }}
-        DINGTALK_SECRET: ${{ secrets.DINGTALK_SECRET }}
         DING_TIMESTAMP: ${{ steps.dingtalk_sign.outputs.timestamp }}
         DING_SIGN: ${{ steps.dingtalk_sign.outputs.sign }}
+        MESSAGE: ${{ steps.dingding_template.outputs.content }}
+
 
     - name: Generate release tag
       id: tag
