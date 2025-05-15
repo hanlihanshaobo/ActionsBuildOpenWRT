@@ -211,17 +211,20 @@ jobs:
         FIRMWARE: ${{ env.FIRMWARE }}
 
     - name: Generate DingTalk message
-      id: generate_message
+      id: dingding_template
       run: |
         TIME_NOW=$(TZ=Asia/Shanghai date "+%Y-%m-%d %H:%M:%S")
         MESSAGE=$(cat templates/dingding_message.md)
         MESSAGE="${MESSAGE//\$\{DEVICE_NAME\}/${DEVICE_NAME:-Unknown}}"
         MESSAGE="${MESSAGE//\$\{TIME_NOW\}/${TIME_NOW}}"
         MESSAGE="${MESSAGE//\$\{CLEAN_URL\}/${CLEAN_URL:-https:\/\/example.com}}"
-    
-        echo "MESSAGE<<EOF" >> $GITHUB_ENV
-        echo "$MESSAGE" >> $GITHUB_ENV
-        echo "EOF" >> $GITHUB_ENV
+        
+        MESSAGE="${MESSAGE//'%'/'%25'}"
+        MESSAGE="${MESSAGE//$'\n'/'%0A'}"
+        MESSAGE="${MESSAGE//$'\r'/'%0D'}"
+
+        echo "content=$MESSAGE" >> $GITHUB_OUTPUT
+
     
     - name: Generate DingTalk signature
       id: dingtalk_sign
@@ -236,12 +239,11 @@ jobs:
       run: |
         curl -s -X POST "${DINGTALK_WEBHOOK_BASE}&timestamp=${DING_TIMESTAMP}&sign=${DING_SIGN}" \
           -H "Content-Type: application/json" \
-          -d "$(jq -n --arg title "固件构建完成" --arg text "$MESSAGE" '{msgtype:"markdown", markdown:{title:$title, text:$text}}')"
+          -d "$(jq -n --arg title "固件构建完成" --arg text "${{ steps.dingding_template.outputs.content }}" '{msgtype:"markdown", markdown:{title:$title, text:$text}}')"
       env:
         DINGTALK_WEBHOOK_BASE: ${{ secrets.DINGTALK_WEBHOOK_BASE }}
         DING_TIMESTAMP: ${{ steps.dingtalk_sign.outputs.timestamp }}
         DING_SIGN: ${{ steps.dingtalk_sign.outputs.sign }}
-        MESSAGE: ${{ env.MESSAGE }}
 
     - name: Generate release tag
       id: tag
