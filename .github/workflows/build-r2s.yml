@@ -216,26 +216,18 @@ jobs:
         # 获取北京时间
         TIME_NOW=$(TZ=Asia/Shanghai date "+%Y-%m-%d %H:%M:%S")
     
-        # 读取模板并替换变量
+        # 读取模板并替换变量（使用@分隔符，避免URL中斜杠冲突）
         MESSAGE=$(cat templates/dingding_message.md)
-        MESSAGE=$(echo "$MESSAGE" | sed "s/\${DEVICE_NAME}/$(echo $DEVICE_NAME)/g")
-        MESSAGE=$(echo "$MESSAGE" | sed "s/\${TIME_NOW}/$TIME_NOW/g")
-        MESSAGE=$(echo "$MESSAGE" | sed "s/\${CLEAN_URL}/$(echo $CLEAN_URL)/g")
-        MESSAGE=$(echo "$MESSAGE" | sed "s/\${RELEASES_URL}/https:\/\/github.com\/${{ github.repository }}\/releases\/download\/${{ steps.tag.outputs.release_tag }}\/${{ env.DEVICE_NAME }}_${{ env.FILE_DATE }}.bin/g")
-        
-        echo "message=$MESSAGE" >> $GITHUB_ENV
-        
-    - name: Send DingTalk notification
-      if: steps.generate_message.outputs.status == 'success'
-      run: |
-        curl -s -X POST "${DINGTALK_WEBHOOK_BASE}&timestamp=${DING_TIMESTAMP}&sign=${DING_SIGN}" \
-          -H "Content-Type: application/json" \
-          -d "$(jq -n --arg title "固件构建完成" --arg text "$MESSAGE" '{msgtype:"markdown", markdown:{title:$title, text:$text}}')"
-      env:
-        DINGTALK_WEBHOOK_BASE: ${{ secrets.DINGTALK_WEBHOOK_BASE }}
-        DINGTALK_SECRET: ${{ secrets.DINGTALK_SECRET }}
-        DING_TIMESTAMP: ${{ steps.dingtalk_sign.outputs.timestamp }}
-        DING_SIGN: ${{ steps.dingtalk_sign.outputs.sign }}
+        MESSAGE=$(echo "$MESSAGE" | sed "s@\${DEVICE_NAME}@${DEVICE_NAME}@g")
+        MESSAGE=$(echo "$MESSAGE" | sed "s@\${TIME_NOW}@${TIME_NOW}@g")
+        MESSAGE=$(echo "$MESSAGE" | sed "s@\${CLEAN_URL}@${CLEAN_URL}@g")
+    
+        RELEASES_URL="https://github.com/${{ github.repository }}/releases/download/${{ steps.tag.outputs.release_tag }}/${DEVICE_NAME}_${FILE_DATE}.bin"
+        MESSAGE=$(echo "$MESSAGE" | sed "s@\${RELEASES_URL}@${RELEASES_URL}@g")
+    
+        echo "message<<EOF" >> $GITHUB_ENV
+        echo "$MESSAGE" >> $GITHUB_ENV
+        echo "EOF" >> $GITHUB_ENV
   
     - name: Generate release tag
       id: tag
