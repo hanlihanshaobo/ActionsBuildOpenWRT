@@ -213,28 +213,26 @@ jobs:
     - name: Send DingTalk notification
       if: steps.organize.outputs.status == 'success' && env.UPLOAD_WEBDAV == 'true'
       run: |
-        # 构建变量
         TIME_NOW=$(TZ=Asia/Shanghai date "+%Y-%m-%d %H:%M:%S")
         DEVICE_NAME=${DEVICE_NAME:-Unknown}
         CLEAN_URL=${WEBDAV_URL}$(basename "$FIRMWARE")
     
-        # 构造消息内容（可按需修改格式）
-        MESSAGE="### 固件构建完成 🎉%0A- 设备: ${DEVICE_NAME}%0A- 时间: ${TIME_NOW}%0A- [📦 下载地址](${CLEAN_URL})"
+        # 构造 Markdown 消息内容
+        MESSAGE="### 🚀 **固件构建完成通知**%0A%0A#### 📦 **设备信息**%0A| 项目 | 内容 |%0A|--------------|--------------------|%0A| **设备型号** | ${DEVICE_NAME} |%0A| **构建时间** | ${TIME_NOW} |%0A| **访问IP** | 192.168.2.1 |%0A| **访问密码** | 无 |%0A%0A#### 🔗 **下载链接**%0A##### **WebDAV 目录**%0A[点击进入 WebDAV 下载目录](${CLEAN_URL})%0A%0A#### ✅ **上传完成**%0A固件已成功上传至 WebDAV，您可以直接点击链接下载使用。%0A%0A---%0A⚡ **构建状态：** [成功]%0A🕒 **构建时间：** ${TIME_NOW} (北京时间)%0A🔒 **安全上传：** 已加密上传至 WebDAV"
     
-        # 生成钉钉签名
-        timestamp=$(($(date +%s%N)/1000000))
-        string_to_sign="${timestamp}\n${{ secrets.DINGTALK_SECRET }}"
-        sign=$(echo -n "$string_to_sign" | openssl dgst -sha256 -hmac "${{ secrets.DINGTALK_SECRET }}" -binary | base64 | jq -s -R -r @uri)
+        timestamp=$(($(date +%s) * 1000))
+        string_to_sign="${timestamp}\n${DINGTALK_SECRET}"
+        sign=$(echo -n "$string_to_sign" | openssl dgst -sha256 -hmac "${DINGTALK_SECRET}" -binary | base64 | jq -s -R -r @uri)
     
-        # 发送消息
-        curl -s -X POST "${{ secrets.DINGTALK_WEBHOOK_BASE }}&timestamp=${timestamp}&sign=${sign}" \
+        curl -s -X POST "${DINGTALK_WEBHOOK_BASE}&timestamp=${timestamp}&sign=${sign}" \
           -H "Content-Type: application/json" \
-          -d "$(jq -n --arg title "固件构建完成" --arg text "$MESSAGE" '{msgtype:"markdown", markdown:{title:$title, text:$text}}')"
+          -d "$(jq -n --arg title "固件构建完成通知" --arg text "$MESSAGE" '{msgtype:"markdown", markdown:{title:$title, text:$text}}')"
       env:
         DINGTALK_WEBHOOK_BASE: ${{ secrets.DINGTALK_WEBHOOK_BASE }}
         DINGTALK_SECRET: ${{ secrets.DINGTALK_SECRET }}
         WEBDAV_URL: ${{ secrets.WEBDAV_URL }}
         FIRMWARE: ${{ env.FIRMWARE }}
+
 
     - name: Generate release tag
       id: tag
