@@ -17,6 +17,9 @@ env:
   UPLOAD_WETRANSFER: false
   UPLOAD_RELEASE: true
   UPLOAD_WEBDAV: true
+  ENABLE_DINGTALK: true
+  ENABLE_TELEGRAM: true
+  ENABLE_WECOM: true
   TZ: Asia/Shanghai
 
 jobs:
@@ -210,28 +213,19 @@ jobs:
         WEBDAV_URL: ${{ secrets.WEBDAV_URL }}
         FIRMWARE: ${{ env.FIRMWARE }}
 
-    - name: Send DingTalk notification
-      if: steps.organize.outputs.status == 'success' && env.UPLOAD_WEBDAV == 'true'
+    - name: 通知构建结果
       run: |
-        TIME_NOW=$(TZ=Asia/Shanghai date "+%Y-%m-%d %H:%M:%S")
-        DEVICE_NAME=${DEVICE_NAME:-Unknown}
-        CLEAN_URL=${WEBDAV_URL}$(basename "$FIRMWARE")
-    
-        # 构造 Markdown 消息内容
-        MESSAGE="### 🚀 **固件构建完成通知**%0A%0A#### 📦 **设备信息**%0A| 项目 | 内容 |%0A|--------------|--------------------|%0A| **设备型号** | ${DEVICE_NAME} |%0A| **构建时间** | ${TIME_NOW} |%0A| **访问IP** | 192.168.2.1 |%0A| **访问密码** | 无 |%0A%0A#### 🔗 **下载链接**%0A##### **WebDAV 目录**%0A[点击进入 WebDAV 下载目录](${CLEAN_URL})%0A%0A#### ✅ **上传完成**%0A固件已成功上传至 WebDAV，您可以直接点击链接下载使用。%0A%0A---%0A⚡ **构建状态：** [成功]%0A🕒 **构建时间：** ${TIME_NOW} (北京时间)%0A🔒 **安全上传：** 已加密上传至 WebDAV"
-    
-        timestamp=$(($(date +%s) * 1000))
-        string_to_sign="${timestamp}\n${DINGTALK_SECRET}"
-        sign=$(echo -n "$string_to_sign" | openssl dgst -sha256 -hmac "${DINGTALK_SECRET}" -binary | base64 | jq -s -R -r @uri)
-    
-        curl -s -X POST "${DINGTALK_WEBHOOK_BASE}&timestamp=${timestamp}&sign=${sign}" \
-          -H "Content-Type: application/json" \
-          -d "$(jq -n --arg title "固件构建完成通知" --arg text "$MESSAGE" '{msgtype:"markdown", markdown:{title:$title, text:$text}}')"
+        bash ./notify/notify.sh all "✅ 构建成功" "设备: $DEVICE_NAME%0A固件构建已完成。"
       env:
+        ENABLE_DINGTALK: ${{ env.ENABLE_DINGTALK }}
+        ENABLE_TELEGRAM: ${{ env.ENABLE_TELEGRAM }}
+        ENABLE_WECOM: ${{ env.ENABLE_WECOM }}
         DINGTALK_WEBHOOK_BASE: ${{ secrets.DINGTALK_WEBHOOK_BASE }}
         DINGTALK_SECRET: ${{ secrets.DINGTALK_SECRET }}
-        WEBDAV_URL: ${{ secrets.WEBDAV_URL }}
-        FIRMWARE: ${{ env.FIRMWARE }}
+        TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+        TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        WECOM_KEY: ${{ secrets.WECOM_KEY }}
+        DEVICE_NAME: ${{ env.DEVICE_NAME }}
 
 
     - name: Generate release tag
