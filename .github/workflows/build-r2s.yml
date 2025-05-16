@@ -19,7 +19,7 @@ env:
   UPLOAD_WEBDAV: true
   ENABLE_DINGTALK: true
   ENABLE_TELEGRAM: true
-  ENABLE_WECOM: true
+  ENABLE_WECOM: false
   TZ: Asia/Shanghai
 
 jobs:
