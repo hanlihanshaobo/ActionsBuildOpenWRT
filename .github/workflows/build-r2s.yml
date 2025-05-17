@@ -193,10 +193,9 @@ jobs:
         webdav_address: ${{ secrets.WEBDAV_URL }}
         webdav_username: ${{ secrets.WEBDAV_USERNAME }}
         webdav_password: ${{ secrets.WEBDAV_PASSWORD }}
-        webdav_upload_path: "/${{ env.DEVICE_NAME }}${{ env.FILE_DATE }}/"
+        webdav_upload_path: "/firmware${{ env.DEVICE_NAME }}${{ env.FILE_DATE }}/"
         files: ${{ env.FIRMWARE }}/*
         keep_structure: false
-
 
     - name: Send Telegram Notification from template file
       if: steps.tag.outputs.status == 'success' && env.ENABLE_TELEGRAM == 'true' && !cancelled()
