@@ -190,11 +190,13 @@ jobs:
       uses: bxb100/action-upload-webdav@v1
       if: steps.organize.outputs.status == 'success' && !cancelled() && env.UPLOAD_WEBDAV == 'true'
       with:
-        webdav_address: ${{ secrets.WEBDAV_URL }}${{ env.DEVICE_NAME }}${{ env.FILE_DATE }}/
+        webdav_address: ${{ secrets.WEBDAV_URL }}
         webdav_username: ${{ secrets.WEBDAV_USERNAME }}
         webdav_password: ${{ secrets.WEBDAV_PASSWORD }}
-        local_path: ${{ env.FIRMWARE }}
-        overwrite: true
+        webdav_upload_path: "/${{ env.DEVICE_NAME }}${{ env.FILE_DATE }}/"
+        files: ${{ env.FIRMWARE }}/*
+        keep_structure: false
+
 
     - name: Send Telegram Notification from template file
       if: steps.tag.outputs.status == 'success' && env.ENABLE_TELEGRAM == 'true' && !cancelled()
