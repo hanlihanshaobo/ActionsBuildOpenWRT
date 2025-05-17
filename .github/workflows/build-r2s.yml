@@ -187,26 +187,41 @@ jobs:
         echo "url=$(cat wetransfer.log | grep https | cut -f3 -d" ")" >> $GITHUB_OUTPUT
         
     - name: Upload firmware to WebDAV
-    if: steps.organize.outputs.status == 'success' && env.UPLOAD_WEBDAV == 'true' && !cancelled()
-    uses: AndresZorro/upload-to-webdav@v1
-    with:
-      server: ${{ secrets.WEBDAV_URL }}
-      username: ${{ secrets.WEBDAV_USERNAME }}
-      password: ${{ secrets.WEBDAV_PASSWORD }}
-      local-directory: ${{ env.FIRMWARE }}
-      remote-directory: nanopi-r2s_${{ github.run_id }}_${{ github.run_number }}
+      uses: bxb100/action-upload-webdav@v1
+      if: steps.organize.outputs.status == 'success' && !cancelled() && env.UPLOAD_WEBDAV == 'true'
+      with:
+        webdav_address: ${{ secrets.WEBDAV_URL }}${{ env.DEVICE_NAME }}${{ env.FILE_DATE }}/
+        webdav_username: ${{ secrets.WEBDAV_USERNAME }}
+        webdav_password: ${{ secrets.WEBDAV_PASSWORD }}
+        local_path: ${{ env.FIRMWARE }}
+        overwrite: true
 
-    - name: Send DingTalk message via curl
-      if: env.ENABLE_DINGTALK == 'true' && steps.tag.outputs.status == 'success'
+    - name: Send Telegram Notification from template file
+      if: steps.tag.outputs.status == 'success' && env.ENABLE_TELEGRAM == 'true' && !cancelled()
       run: |
-        DINGDING_WEBHOOK="https://oapi.dingtalk.com/robot/send?access_token=${{ secrets.DINGTALK_TOKEN }}"
-        SECRET="${{ secrets.DINGTALK_SECRET }}"
-        TIMESTAMP=$(($(date +%s%N)/1000000))
-        SIGN=$(echo -n "${TIMESTAMP}\n${SECRET}" | openssl dgst -sha256 -hmac "${SECRET}" -binary | base64)
+        TIME_NOW=$(date +"%Y-%m-%d %H:%M:%S")
+        CLEAN_URL="${{ secrets.WEBDAV_URL }}${{ env.FILE_DATE }}/"
+        # 渲染模板到临时文件
+        envsubst < templates/dingding_message.md > rendered_message.md
+        # 读取渲染好的消息内容，转义换行符方便传给 action
+        MESSAGE=$(sed ':a;N;$!ba;s/\n/\\n/g' rendered_message.md)
+        echo "MESSAGE=$MESSAGE" >> $GITHUB_ENV
+      env:
+        DEVICE_NAME: ${{ env.DEVICE_NAME }}
+        FILE_DATE: ${{ env.FILE_DATE }}
+        TIME_NOW: ${{ steps.tag.outputs.release_tag }}
+        CLEAN_URL: ${{ secrets.WEBDAV_URL }}${{ env.FILE_DATE }}/
+        REPO: ${{ github.repository }}
+        TAG: ${{ steps.tag.outputs.release_tag }}
 
-        curl "${DINGDING_WEBHOOK}&timestamp=${TIMESTAMP}&sign=${SIGN}" \
-          -H 'Content-Type: application/json' \
-          -d @<(jq -Rs --arg type "markdown" --arg title "构建通知" '{"msgtype":$type,"markdown":{"title":$title,"text":.}}' dingtalk_message.md)
+    - name: Telegram notify
+      uses: appleboy/telegram-action@master
+      if: steps.tag.outputs.status == 'success' && env.ENABLE_TELEGRAM == 'true' && !cancelled()
+      with:
+        to: ${{ secrets.TELEGRAM_CHAT_ID }}
+        token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+        message: ${{ env.MESSAGE }}
+        parse_mode: markdown
 
     - name: Generate release tag
       id: tag
