@@ -187,46 +187,26 @@ jobs:
         echo "url=$(cat wetransfer.log | grep https | cut -f3 -d" ")" >> $GITHUB_OUTPUT
         
     - name: Upload firmware to WebDAV
-      id: webdav_upload
-      if: steps.organize.outputs.status == 'success' && !cancelled() && env.UPLOAD_WEBDAV == 'true'
-      run: |
-        # 拼接上传目录
-        TIMESTAMP="nanopi-r2s_$(date +"%Y%m%d%H%M%S")"
-        NEW_FOLDER="${WEBDAV_URL}${TIMESTAMP}/"
-    
-        echo "Creating folder: $NEW_FOLDER"
-        curl -u "${WEBDAV_USERNAME}:${WEBDAV_PASSWORD}" -X MKCOL "$NEW_FOLDER"
-    
-        echo "Uploading files to $NEW_FOLDER"
-        for file in ${FIRMWARE}/*; do
-          echo "Uploading $file to $NEW_FOLDER"
-          curl -T "$file" -u "${WEBDAV_USERNAME}:${WEBDAV_PASSWORD}" "${NEW_FOLDER}$(basename "$file")" || {
-            echo "::error::Failed to upload $file to WebDAV"
-            exit 1
-          }
-        done
-    
-        echo "WebDAV upload completed to $NEW_FOLDER"
-      env:
-        WEBDAV_USERNAME: ${{ secrets.WEBDAV_USERNAME }}
-        WEBDAV_PASSWORD: ${{ secrets.WEBDAV_PASSWORD }}
-        WEBDAV_URL: ${{ secrets.WEBDAV_URL }}
-        FIRMWARE: ${{ env.FIRMWARE }}
+    if: steps.organize.outputs.status == 'success' && env.UPLOAD_WEBDAV == 'true' && !cancelled()
+    uses: AndresZorro/upload-to-webdav@v1
+    with:
+      server: ${{ secrets.WEBDAV_URL }}
+      username: ${{ secrets.WEBDAV_USERNAME }}
+      password: ${{ secrets.WEBDAV_PASSWORD }}
+      local-directory: ${{ env.FIRMWARE }}
+      remote-directory: nanopi-r2s_${{ github.run_id }}_${{ github.run_number }}
 
-    - name: 通知构建结果
+    - name: Send DingTalk message via curl
+      if: env.ENABLE_DINGTALK == 'true' && steps.tag.outputs.status == 'success'
       run: |
-        bash ./notify/notify.sh all "✅ 构建成功" "设备: $DEVICE_NAME%0A固件构建已完成。"
-      env:
-        ENABLE_DINGTALK: ${{ env.ENABLE_DINGTALK }}
-        ENABLE_TELEGRAM: ${{ env.ENABLE_TELEGRAM }}
-        ENABLE_WECOM: ${{ env.ENABLE_WECOM }}
-        DINGTALK_WEBHOOK_BASE: ${{ secrets.DINGTALK_WEBHOOK_BASE }}
-        DINGTALK_SECRET: ${{ secrets.DINGTALK_SECRET }}
-        TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
-        TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-        WECOM_KEY: ${{ secrets.WECOM_KEY }}
-        DEVICE_NAME: ${{ env.DEVICE_NAME }}
+        DINGDING_WEBHOOK="https://oapi.dingtalk.com/robot/send?access_token=${{ secrets.DINGTALK_TOKEN }}"
+        SECRET="${{ secrets.DINGTALK_SECRET }}"
+        TIMESTAMP=$(($(date +%s%N)/1000000))
+        SIGN=$(echo -n "${TIMESTAMP}\n${SECRET}" | openssl dgst -sha256 -hmac "${SECRET}" -binary | base64)
 
+        curl "${DINGDING_WEBHOOK}&timestamp=${TIMESTAMP}&sign=${SIGN}" \
+          -H 'Content-Type: application/json' \
+          -d @<(jq -Rs --arg type "markdown" --arg title "构建通知" '{"msgtype":$type,"markdown":{"title":$title,"text":.}}' dingtalk_message.md)
 
     - name: Generate release tag
       id: tag
