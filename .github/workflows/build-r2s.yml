@@ -16,10 +16,6 @@ env:
   UPLOAD_COWTRANSFER: false
   UPLOAD_WETRANSFER: false
   UPLOAD_RELEASE: true
-  UPLOAD_WEBDAV: true
-  ENABLE_DINGTALK: true
-  ENABLE_TELEGRAM: true
-  ENABLE_WECOM: false
   TZ: Asia/Shanghai
 
 jobs:
@@ -185,44 +181,6 @@ jobs:
         ./transfer wet -s -p 16 --no-progress ${FIRMWARE} 2>&1 | tee wetransfer.log
         echo "::warning file=wetransfer.com::$(cat wetransfer.log | grep https)"
         echo "url=$(cat wetransfer.log | grep https | cut -f3 -d" ")" >> $GITHUB_OUTPUT
-        
-    - name: Upload firmware to WebDAV
-      uses: bxb100/action-upload-webdav@v1
-      if: steps.organize.outputs.status == 'success' && !cancelled() && env.UPLOAD_WEBDAV == 'true'
-      with:
-        webdav_address: ${{ secrets.WEBDAV_URL }}
-        webdav_username: ${{ secrets.WEBDAV_USERNAME }}
-        webdav_password: ${{ secrets.WEBDAV_PASSWORD }}
-        webdav_upload_path: "/firmware${{ env.DEVICE_NAME }}${{ env.FILE_DATE }}/"
-        files: ${{ env.FIRMWARE }}/*
-        keep_structure: false
-
-    - name: Send Telegram Notification from template file
-      if: steps.tag.outputs.status == 'success' && env.ENABLE_TELEGRAM == 'true' && !cancelled()
-      run: |
-        TIME_NOW=$(date +"%Y-%m-%d %H:%M:%S")
-        CLEAN_URL="${{ secrets.WEBDAV_URL }}${{ env.FILE_DATE }}/"
-        # 渲染模板到临时文件
-        envsubst < templates/dingding_message.md > rendered_message.md
-        # 读取渲染好的消息内容，转义换行符方便传给 action
-        MESSAGE=$(sed ':a;N;$!ba;s/\n/\\n/g' rendered_message.md)
-        echo "MESSAGE=$MESSAGE" >> $GITHUB_ENV
-      env:
-        DEVICE_NAME: ${{ env.DEVICE_NAME }}
-        FILE_DATE: ${{ env.FILE_DATE }}
-        TIME_NOW: ${{ steps.tag.outputs.release_tag }}
-        CLEAN_URL: ${{ secrets.WEBDAV_URL }}${{ env.FILE_DATE }}/
-        REPO: ${{ github.repository }}
-        TAG: ${{ steps.tag.outputs.release_tag }}
-
-    - name: Telegram notify
-      uses: appleboy/telegram-action@master
-      if: steps.tag.outputs.status == 'success' && env.ENABLE_TELEGRAM == 'true' && !cancelled()
-      with:
-        to: ${{ secrets.TELEGRAM_CHAT_ID }}
-        token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-        message: ${{ env.MESSAGE }}
-        parse_mode: markdown
 
     - name: Generate release tag
       id: tag
