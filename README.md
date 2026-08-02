@@ -2,15 +2,12 @@
 
 使用 GitHub Actions 自动编译 OpenWrt 固件。
 
-## 支持的设备
+## 配置文件与目标设备
 
-| 工作流 | 说明 |
+| 配置文件 | 实际目标设备 |
 | --- | --- |
-| `build-360t7.yml` | 360 T7 |
-| `build-arm64v8.yml` | ARMv8 通用 |
-| `build-r2s.yml` | NanoPi R2S |
-| `build-rac2v1k.yml` | 京东云 RAC2V1K |
-| `build-x86_64.yml` | x86_64 通用 |
+| `R2S.config` | NanoPi R2S (rockchip/armv8) |
+| `jdc-ax1800pro.config` | NanoPi R2S (rockchip/armv8)，与 R2S.config 内容相同 |
 
 ## 功能特性
 
@@ -24,4 +21,6 @@
 2. 在 `Actions` 页面选择对应的构建工作流，点击 `Run workflow` 手动触发，或等待自动更新检测
 3. 构建完成后固件会自动上传到 GitHub Release（保留最新 3 个）
 
-> 注意：自动触发构建需要配置 `ACTIONS_TRIGGER_PAT` secrets（仓库访问令牌）。
+> 注意：
+> - 自动触发构建需要配置 `ACTIONS_TRIGGER_PAT` secrets（仓库访问令牌）。
+> - 部分工作流（360t7 / arm64v8 / rac2v1k / x86_64）引用的配置文件已移除，如需构建对应设备需先补充对应的 `.config` 文件。
