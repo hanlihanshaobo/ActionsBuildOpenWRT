@@ -11,3 +11,5 @@ sed -i '$a src-git cups https://github.com/sirpdboy/luci-app-cupsd.git' ./feeds.
 sed -i '$a src-git gecoosac https://github.com/bleach1991/openwrt-gecoosac.git' ./feeds.conf.default
 # 应用过滤
 sed -i '$a src-git OpenAppFilter https://github.com/destan19/OpenAppFilter.git' ./feeds.conf.default
+# USB移动数据网络
+sed -i '$a src-git usbmodem https://github.com/1391959853/luci-app-usbmodem.git' ./feeds.conf.default
