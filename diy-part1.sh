@@ -14,4 +14,4 @@ sed -i '$a src-git OpenAppFilter https://github.com/destan19/OpenAppFilter.git' 
 # USB移动数据网络
 sed -i '$a src-git usbmodem https://github.com/1391959853/luci-app-usbmodem.git' ./feeds.conf.default
 # eMMC健康检测/分区管理
-sed -i '$a src-git route-tool https://github.com/rothdren-lion/luci-app-route-tool.git' ./feeds.conf.default
+sed -i '$a src-git routetool https://github.com/rothdren-lion/luci-app-route-tool.git' ./feeds.conf.default
