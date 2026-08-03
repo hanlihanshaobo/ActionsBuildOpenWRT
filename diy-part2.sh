@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# gecoosac 官方源 lwb1978/gecoosac-core 已删除，改用镜像 hxlls/gecoosac-core（二进制哈希一致）
+sed -i 's#lwb1978/gecoosac-core#hxlls/gecoosac-core#g' feeds/gecoosac/gecoosac/Makefile
+
 # Modify default IP
 #sed -i 's/192.168.1.1/192.168.50.5/g' package/base-files/files/bin/config_generate
 
