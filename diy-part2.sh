@@ -3,6 +3,9 @@
 # gecoosac 官方源 lwb1978/gecoosac-core 已删除，改用镜像 hxlls/gecoosac-core（二进制哈希一致）
 sed -i 's#lwb1978/gecoosac-core#hxlls/gecoosac-core#g' feeds/gecoosac/gecoosac/Makefile
 
+# ipq60xx factory.bin 内核填充 12MiB→6MiB，适配 0:HLOS 为 6MiB 的设备（否则 U-Boot 刷机工具拒绝）
+sed -i 's/pad-to 12288k/pad-to 6144k/' target/linux/qualcommax/image/ipq60xx.mk
+
 # Modify default IP
 #sed -i 's/192.168.1.1/192.168.50.5/g' package/base-files/files/bin/config_generate
 
